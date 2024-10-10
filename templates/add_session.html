@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Session</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Home</a>
+        <h1>Add a New Badminton Session</h1>
+        <form method="POST">
+            <div class="form-group">
+                <label for="date">Session Date:</label>
+                <input type="date" name="date" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="slots">Number of Slots (6 per court):</label>
+                <input type="number" name="slots" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Session</button>
+        </form>
+    </div>
+</body>
+</html>

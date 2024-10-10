@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Management</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Home</a>
+        <h1>Manage Session Fees</h1>
+        <form method="POST">
+            <div class="form-group">
+                <label for="session_id">Select Session:</label>
+                <select name="session_id" class="form-control" required>
+                    {% for session in sessions %}
+                    <option value="{{ session.id }}">{{ session.date }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="shuttles_used">Shuttles Used:</label>
+                <input type="number" name="shuttles_used" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+</body>
+</html>
