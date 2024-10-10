@@ -1,0 +1,27 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+
+# Environment variable file
+.env
+
+# SQLite database
+*.db
+
+# Migrations cache files
+migrations/versions/__pycache__/
+migrations/versions/*.pyc
+
+# IDE specific files
+.vscode/
+.idea/
+
+# Compiled Python files
+*.egg
+*.egg-info/
+dist/
+build/
