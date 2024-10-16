@@ -4,17 +4,77 @@ from extensions import db  # Import db from extensions
 from flask_migrate import Migrate
 from sqlalchemy import asc
 from datetime import datetime
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)  # Initialize db with app
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'  # Redirect to login page if not authenticated
+
 
 # Initialize Flask-Migrate
 migrate = Migrate(app, db)
 
 from models import User, Session
 
+# User loader callback function
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        display_name = request.form['display_name']  # Get display name from form
+
+        # Check if the email is already registered
+        user = User.query.filter_by(email=email).first()
+        if user:
+            flash('Email is already registered')
+            return redirect(url_for('register'))
+
+        # Create a new user with the display name
+        new_user = User(email=email, display_name=display_name)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Registration successful! You can now log in.')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+
+        # Find user by email
+        user = User.query.filter_by(email=email).first()
+        if user and user.check_password(password):
+            login_user(user)
+            flash('Logged in successfully!')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid email or password')
+
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.')
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     # Get the current date
     current_date = datetime.now().date()

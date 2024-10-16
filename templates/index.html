@@ -11,7 +11,8 @@
 </head>
 <body>
     <div class="container mt-5">
-        <a href="{{ url_for('admin_login') }}" class="btn btn-primary">Admin</a>
+        <a href="{{ url_for('admin_login') }}" class="btn btn-primary">Admin Login</a>
+        <a href="{{ url_for('logout') }}">User Logout</a>
         <h1>Upcoming Badminton Sessions</h1>
         <div class="row">
             {% for session in sessions %}
