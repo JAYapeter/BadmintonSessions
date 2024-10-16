@@ -214,27 +214,21 @@ def modify_session(session_id):
 
 # View participants for a session in the admin panel
 @app.route('/admin/session/<int:session_id>/participants_json', methods=['GET'])
-def admin_view_participants_json(session_id):
-    if not session.get('admin'):
-        return redirect(url_for('admin_login'))
+@login_required
+def admin_session_participants_json(session_id):
+    session = Session.query.get_or_404(session_id)
+    participants = [{'id': user.id, 'display_name': user.display_name}
+                    for user in session.users]
+    waitlist = [{'id': user.id, 'display_name': user.display_name}
+                for user in session.waitlist]
 
-    session_obj = Session.query.get(session_id)
-    if session_obj:
-        participants = [{'id': user.id, 'name': user.name}
-                        for user in session_obj.users]
-        waitlist = [{'id': user.id, 'name': user.name}
-                    for user in session_obj.waitlist]
+    return jsonify({
+        'participants': participants,
+        'waitlist': waitlist
+    })
 
-        return jsonify({
-            'participants': participants,
-            'waitlist': waitlist
-        })
-    else:
-        return jsonify({'error': 'Session not found'}), 404
 
 # Add a participant to a session
-
-
 @app.route('/admin/session/<int:session_id>/add_participant', methods=['POST'])
 def admin_add_participant(session_id):
     if not session.get('admin'):
@@ -271,86 +265,36 @@ def admin_add_participant(session_id):
 
 # Delete a participant and update the waitlist
 @app.route('/admin/session/<int:session_id>/remove_participant/<int:user_id>', methods=['POST'])
-def admin_remove_participant(session_id, user_id):
-    if not session.get('admin'):
-        return redirect(url_for('admin_login'))
+def remove_participant(session_id, user_id):
+    session = Session.query.get_or_404(session_id)
+    user = User.query.get_or_404(user_id)
 
-    session_obj = Session.query.get(session_id)
-    user = User.query.get(user_id)
-
-    if session_obj and user:
-        # Remove user from the participants list
-        if user in session_obj.users:
-            session_obj.users.remove(user)
-            flash(f'{user.name} removed from participants.')
-
-            # Check the waitlist and move the top waitlisted user into participants
-            if len(session_obj.waitlist) > 0:
-                top_waitlist_user = session_obj.waitlist.pop(0)
-                session_obj.users.append(top_waitlist_user)
-                flash(
-                    f'{top_waitlist_user.name} moved from waitlist to participants.')
-
-            db.session.commit()
-            # Return success response
-            return jsonify({'message': 'User removed successfully'}), 200
-        else:
-            return jsonify({'error': 'User not found in participants'}), 404
-    else:
-        return jsonify({'error': 'Session or user not found'}), 404
-
-
-@app.route('/admin/session/<int:session_id>/remove_waitlisted/<int:user_id>', methods=['POST'])
-def admin_remove_waitlisted(session_id, user_id):
-    if not session.get('admin'):
-        return redirect(url_for('admin_login'))
-
-    session_obj = Session.query.get(session_id)
-    user = User.query.get(user_id)
-
-    if session_obj and user:
-        # Remove the user from the waitlist
-        if user in session_obj.waitlist:
-            session_obj.waitlist.remove(user)
-            db.session.commit()
-            return jsonify({'message': f'{user.name} removed from waitlist'}), 200
-        else:
-            return jsonify({'error': 'User not found in waitlist'}), 404
-    else:
-        return jsonify({'error': 'Session or user not found'}), 404
-
-
-# Reorder participants and waitlist
-@app.route('/admin/session/<int:session_id>/reorder', methods=['POST'])
-def admin_reorder(session_id):
-    if not session.get('admin'):
-        return redirect(url_for('admin_login'))
-
-    session_obj = Session.query.get(session_id)
-
-    if session_obj:
-        # Reorder participants
-        participant_order = request.form.getlist('participant_order[]')
-        new_participants = []
-        for user_id in participant_order:
-            user = User.query.get(user_id)
-            if user:
-                new_participants.append(user)
-        session_obj.users = new_participants
-
-        # Reorder waitlist
-        waitlist_order = request.form.getlist('waitlist_order[]')
-        new_waitlist = []
-        for user_id in waitlist_order:
-            user = User.query.get(user_id)
-            if user:
-                new_waitlist.append(user)
-        session_obj.waitlist = new_waitlist
-
+    if user in session.users:
+        session.users.remove(user)
         db.session.commit()
-        return jsonify({'message': 'Participant and waitlist order updated successfully.'}), 200
+        flash(f'{user.display_name} removed from the session.', 'success')
+        # Move the top of the waitlist up if there's space
+        if len(session.users) < session.slots and session.waitlist:
+            next_user = session.waitlist.pop(0)
+            session.users.append(next_user)
+            db.session.commit()
 
-    return jsonify({'error': 'Session not found'}), 404
+        return jsonify({"message": "Participant removed successfully."})
+    else:
+        return jsonify({"message": "User is not a participant in this session."}), 400
+
+# Delete a waitlisted user
+@app.route('/admin/session/<int:session_id>/remove_waitlist/<int:user_id>', methods=['POST'])
+def remove_waitlist_user(session_id, user_id):
+    session = Session.query.get_or_404(session_id)
+    user = User.query.get_or_404(user_id)
+
+    if user in session.waitlist:
+        session.waitlist.remove(user)
+        db.session.commit()
+        return jsonify({"message": "Waitlisted user removed successfully."})
+    else:
+        return jsonify({"message": "User is not on the waitlist."}), 400
 
 
 @app.route('/poll', methods=['POST'])
@@ -393,28 +337,6 @@ def poll():
         'remaining_slots': remaining_slots,
         'waitlist_count': waitlist_count
     })
-
-
-@app.route('/fees', methods=['GET', 'POST'])
-def fees():
-    if request.method == 'POST':
-        session_id = request.form['session_id']
-        shuttles_used = int(request.form['shuttles_used'])
-        session = Session.query.get(session_id)
-
-        session.shuttles_used = shuttles_used
-        db.session.commit()
-
-        return redirect(url_for('fees'))
-
-    sessions = Session.query.all()
-    return render_template('fees.html', sessions=sessions)
-
-
-@app.route('/waitlist')
-def waitlist():
-    waitlisted = Poll.query.all()
-    return render_template('waitlist.html', waitlisted=waitlisted)
 
 
 @app.route('/join_session/<int:session_id>', methods=['POST'])
