@@ -10,6 +10,7 @@
     <div class="container mt-5">
         <h1>Admin Login</h1>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label for="password">Enter Admin Password</label>
                 <input type="password" name="password" class="form-control" required>

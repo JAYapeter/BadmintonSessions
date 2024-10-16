@@ -5,13 +5,21 @@ from flask_migrate import Migrate
 from sqlalchemy import asc
 from datetime import datetime
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFProtect
+from models import Session
+
 
 
 app = Flask(__name__)
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
+
 app.config.from_object(Config)
 db.init_app(app)  # Initialize db with app
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'  # Redirect to login page if not authenticated
+
+
 
 
 # Initialize Flask-Migrate
@@ -65,6 +73,7 @@ def login():
             flash('Invalid email or password')
 
     return render_template('login.html')
+
 
 @app.route('/logout')
 @login_required
@@ -320,42 +329,46 @@ def admin_reorder(session_id):
     return jsonify({'error': 'Session not found'}), 404
 
 
-
 @app.route('/poll', methods=['POST'])
+@login_required
 def poll():
-    session_id = request.form['session_id']
-    user_name = request.form['user_name']
-    
-    # Find or create the user
-    user = User.query.filter_by(name=user_name).first()
-    if not user:
-        user = User(name=user_name)
-        db.session.add(user)
-        db.session.commit()
-
-    # Get the session
+    session_id = request.form.get('session_id')
+    user = current_user  # The logged-in user
     session = Session.query.get(session_id)
-    
-    # Check if the session is full
-    if len(session.users) < session.slots:
+
+    if not session:
+        return jsonify({'error': 'Session not found.'}), 404
+
+    # Check if the user is already confirmed or waitlisted for this session
+    if user in session.users:
+        return jsonify({'error': 'You are already confirmed for this session.'}), 400
+    if user in session.waitlist:
+        return jsonify({'error': 'You are already waitlisted for this session.'}), 400
+
+    # Check if there are remaining slots in the session
+    remaining_slots = session.slots - len(session.users)
+
+    if remaining_slots > 0:
+        # Add the user as a confirmed participant
         session.users.append(user)
-        db.session.commit()
         message = 'You have successfully joined the session!'
     else:
-        # Add to waitlist if the session is full
-        if user not in session.waitlist:
-            session.waitlist.append(user)
-            db.session.commit()
-            message = 'The session is full. You have been added to the waitlist.'
-        else:
-            message = 'You are already on the waitlist.'
+        # Add the user to the waitlist
+        session.waitlist.append(user)
+        message = 'The session is full. You have been added to the waitlist.'
 
-    # Return response with updated slot and waitlist count
-    return {
+    # Commit changes to the database
+    db.session.commit()
+
+    # Update the response with the new number of remaining slots and waitlist count
+    remaining_slots = session.slots - len(session.users)
+    waitlist_count = len(session.waitlist)
+
+    return jsonify({
         'message': message,
-        'remaining_slots': session.slots - len(session.users),
-        'waitlist_count': len(session.waitlist)
-    }, 200
+        'remaining_slots': remaining_slots,
+        'waitlist_count': waitlist_count
+    })
 
 
 @app.route('/fees', methods=['GET', 'POST'])
@@ -378,13 +391,77 @@ def waitlist():
     waitlisted = Poll.query.all()
     return render_template('waitlist.html', waitlisted=waitlisted)
 
+@app.route('/join_session/<int:session_id>', methods=['POST'])
+@login_required
+def join_session(session_id):
+    session = Session.query.get_or_404(session_id)
+    user = current_user
+
+    # Check if the user is already in the session
+    if user in session.users:
+        return jsonify({'error': 'You have already joined this session.'}), 400
+
+    # Check if the session is full
+    if len(session.users) < session.slots:
+        session.users.append(user)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'You have successfully joined the session.',
+            'remaining_slots': session.slots - len(session.users),
+            'waitlist_count': len(session.waitlist),
+            'joined': True  # Indicate that the user has joined
+        })
+    else:
+        # If the session is full, add the user to the waitlist
+        if user not in session.waitlist:
+            session.waitlist.append(user)
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': 'The session is full. You have been added to the waitlist.',
+                'remaining_slots': session.slots - len(session.users),
+                'waitlist_count': len(session.waitlist),
+                'joined': False
+            })
+        else:
+            return jsonify({'error': 'You are already on the waitlist for this session.'}), 400
+
+
+@app.route('/leave_session/<int:session_id>', methods=['POST'])
+@login_required
+def leave_session(session_id):
+    session = Session.query.get_or_404(session_id)
+    user = current_user
+
+    # Check if the user is part of the session
+    if user in session.users:
+        # Remove the user from confirmed participants
+        session.users.remove(user)
+
+        # If there is a waitlist, move the first person from waitlist to confirmed
+        if session.waitlist:
+            next_in_line = session.waitlist.pop(0)
+            session.users.append(next_in_line)
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'You have successfully left the session.',
+            'remaining_slots': session.slots - len(session.users),
+            'waitlist_count': len(session.waitlist),
+            'joined': False  # Indicate that the user has left
+        })
+    else:
+        return jsonify({'error': 'You are not part of this session.'}), 400
+
 @app.route('/session_participants/<int:session_id>', methods=['GET'])
 def session_participants(session_id):
-    session = Session.query.get(session_id)
+    session = Session.query.get_or_404(session_id)
     
     if session:
-        participants = [{'name': user.name} for user in session.users]
-        waitlisted = [{'name': user.name} for user in session.waitlist]
+        participants = [{'display_name': user.display_name} for user in session.users]
+        waitlisted = [{'display_name': user.display_name} for user in session.waitlist]
         
         return jsonify({
             'participants': participants,
