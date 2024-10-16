@@ -1,3 +1,4 @@
+from models import User, Session
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
 from config import Config
 from extensions import db  # Import db from extensions
@@ -7,7 +8,6 @@ from datetime import datetime
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
 from models import Session
-
 
 
 app = Flask(__name__)
@@ -20,24 +20,24 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'  # Redirect to login page if not authenticated
 
 
-
-
 # Initialize Flask-Migrate
 migrate = Migrate(app, db)
 
-from models import User, Session
 
 # User loader callback function
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        display_name = request.form['display_name']  # Get display name from form
+        # Get display name from form
+        display_name = request.form['display_name']
 
         # Check if the email is already registered
         user = User.query.filter_by(email=email).first()
@@ -82,6 +82,7 @@ def logout():
     flash('You have been logged out.')
     return redirect(url_for('login'))
 
+
 @app.route('/')
 @login_required
 def index():
@@ -89,12 +90,15 @@ def index():
     current_date = datetime.now().date()
 
     # Retrieve only upcoming sessions sorted by the session date (oldest to newest)
-    sessions = Session.query.filter(Session.date >= current_date).order_by(asc(Session.date)).all()
+    sessions = Session.query.filter(
+        Session.date >= current_date).order_by(asc(Session.date)).all()
 
     return render_template('index.html', sessions=sessions)
 
+
 # Set a simple admin password (you can replace this with more secure logic)
 ADMIN_PASSWORD = 'admin123'
+
 
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
@@ -108,10 +112,12 @@ def admin_login():
             return redirect(url_for('admin_login'))
     return render_template('admin_login.html')
 
+
 @app.route('/admin_logout')
 def admin_logout():
     session.pop('admin', None)
     return redirect(url_for('index'))
+
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
@@ -122,8 +128,10 @@ def admin():
     current_date = datetime.now().date()
 
     # Retrieve current and past sessions
-    current_sessions = Session.query.filter(Session.date >= current_date).order_by(asc(Session.date)).all()
-    past_sessions = Session.query.filter(Session.date < current_date).order_by(Session.date.desc()).all()
+    current_sessions = Session.query.filter(
+        Session.date >= current_date).order_by(asc(Session.date)).all()
+    past_sessions = Session.query.filter(
+        Session.date < current_date).order_by(Session.date.desc()).all()
 
     if request.method == 'POST':
         # Add new session logic
@@ -143,7 +151,7 @@ def admin():
 def delete_session(session_id):
     if not session.get('admin'):
         return redirect(url_for('admin_login'))
-    
+
     session_to_delete = Session.query.get(session_id)
     if session_to_delete:
         db.session.delete(session_to_delete)
@@ -151,8 +159,9 @@ def delete_session(session_id):
         flash('Session deleted successfully!')
     else:
         flash('Session not found.')
-    
+
     return redirect(url_for('admin'))
+
 
 @app.route('/admin/modify_session/<int:session_id>', methods=['POST'])
 def modify_session(session_id):
@@ -166,15 +175,18 @@ def modify_session(session_id):
         old_slots = session_to_modify.slots
         session_to_modify.date = request.form['date']
         session_to_modify.slots = new_slots
-        
+
         # If slots have increased, move users from waitlist to participants
         if new_slots > old_slots:
             available_slots = new_slots - len(session_to_modify.users)
             if available_slots > 0 and len(session_to_modify.waitlist) > 0:
-                users_to_move = min(available_slots, len(session_to_modify.waitlist))
+                users_to_move = min(available_slots, len(
+                    session_to_modify.waitlist))
                 for _ in range(users_to_move):
-                    user = session_to_modify.waitlist.pop(0)  # Get the first user from the waitlist
-                    session_to_modify.users.append(user)      # Move them to participants
+                    # Get the first user from the waitlist
+                    user = session_to_modify.waitlist.pop(0)
+                    # Move them to participants
+                    session_to_modify.users.append(user)
                 db.session.commit()
                 flash(f'{users_to_move} users moved from waitlist to participants.')
 
@@ -182,12 +194,15 @@ def modify_session(session_id):
         elif new_slots < old_slots:
             excess_participants = len(session_to_modify.users) - new_slots
             if excess_participants > 0:
-                users_to_move = session_to_modify.users[-excess_participants:]  # Get the last excess participants
+                # Get the last excess participants
+                users_to_move = session_to_modify.users[-excess_participants:]
                 for user in users_to_move:
                     session_to_modify.users.remove(user)
-                    session_to_modify.waitlist.append(user)  # Move them to the waitlist
+                    session_to_modify.waitlist.append(
+                        user)  # Move them to the waitlist
                 db.session.commit()
-                flash(f'{excess_participants} users moved from participants to waitlist due to slot reduction.')
+                flash(
+                    f'{excess_participants} users moved from participants to waitlist due to slot reduction.')
 
         db.session.commit()
         flash('Session modified successfully!')
@@ -205,9 +220,11 @@ def admin_view_participants_json(session_id):
 
     session_obj = Session.query.get(session_id)
     if session_obj:
-        participants = [{'id': user.id, 'name': user.name} for user in session_obj.users]
-        waitlist = [{'id': user.id, 'name': user.name} for user in session_obj.waitlist]
-        
+        participants = [{'id': user.id, 'name': user.name}
+                        for user in session_obj.users]
+        waitlist = [{'id': user.id, 'name': user.name}
+                    for user in session_obj.waitlist]
+
         return jsonify({
             'participants': participants,
             'waitlist': waitlist
@@ -216,12 +233,15 @@ def admin_view_participants_json(session_id):
         return jsonify({'error': 'Session not found'}), 404
 
 # Add a participant to a session
+
+
 @app.route('/admin/session/<int:session_id>/add_participant', methods=['POST'])
 def admin_add_participant(session_id):
     if not session.get('admin'):
         return redirect(url_for('admin_login'))
 
-    session_obj = Session.query.get(session_id)  # Make sure this session ID is used
+    # Make sure this session ID is used
+    session_obj = Session.query.get(session_id)
 
     if session_obj:
         user_name = request.form['user_name']
@@ -237,15 +257,16 @@ def admin_add_participant(session_id):
         if len(session_obj.users) < session_obj.slots:
             session_obj.users.append(user)
             db.session.commit()
-            return jsonify({'message': f'{user_name} added to session'}), 200  # Return success response
+            # Return success response
+            return jsonify({'message': f'{user_name} added to session'}), 200
         else:
             # Add user to the waitlist if session is full
             session_obj.waitlist.append(user)
             db.session.commit()
-            return jsonify({'message': f'{user_name} added to the waitlist'}), 200  # Return success response
+            # Return success response
+            return jsonify({'message': f'{user_name} added to the waitlist'}), 200
     else:
         return jsonify({'error': 'Session not found'}), 404
-
 
 
 # Delete a participant and update the waitlist
@@ -267,15 +288,18 @@ def admin_remove_participant(session_id, user_id):
             if len(session_obj.waitlist) > 0:
                 top_waitlist_user = session_obj.waitlist.pop(0)
                 session_obj.users.append(top_waitlist_user)
-                flash(f'{top_waitlist_user.name} moved from waitlist to participants.')
+                flash(
+                    f'{top_waitlist_user.name} moved from waitlist to participants.')
 
             db.session.commit()
-            return jsonify({'message': 'User removed successfully'}), 200  # Return success response
+            # Return success response
+            return jsonify({'message': 'User removed successfully'}), 200
         else:
             return jsonify({'error': 'User not found in participants'}), 404
     else:
         return jsonify({'error': 'Session or user not found'}), 404
-    
+
+
 @app.route('/admin/session/<int:session_id>/remove_waitlisted/<int:user_id>', methods=['POST'])
 def admin_remove_waitlisted(session_id, user_id):
     if not session.get('admin'):
@@ -386,10 +410,12 @@ def fees():
     sessions = Session.query.all()
     return render_template('fees.html', sessions=sessions)
 
+
 @app.route('/waitlist')
 def waitlist():
     waitlisted = Poll.query.all()
     return render_template('waitlist.html', waitlisted=waitlisted)
+
 
 @app.route('/join_session/<int:session_id>', methods=['POST'])
 @login_required
@@ -455,14 +481,17 @@ def leave_session(session_id):
     else:
         return jsonify({'error': 'You are not part of this session.'}), 400
 
+
 @app.route('/session_participants/<int:session_id>', methods=['GET'])
 def session_participants(session_id):
     session = Session.query.get_or_404(session_id)
-    
+
     if session:
-        participants = [{'display_name': user.display_name} for user in session.users]
-        waitlisted = [{'display_name': user.display_name} for user in session.waitlist]
-        
+        participants = [{'display_name': user.display_name}
+                        for user in session.users]
+        waitlisted = [{'display_name': user.display_name}
+                      for user in session.waitlist]
+
         return jsonify({
             'participants': participants,
             'waitlist': waitlisted
@@ -470,21 +499,22 @@ def session_participants(session_id):
     else:
         return jsonify({'error': 'Session not found'}), 404
 
+
 @app.route('/add_session', methods=['GET', 'POST'])
 def add_session():
     if request.method == 'POST':
         date = request.form['date']
         slots = int(request.form['slots'])
-        
+
         new_session = Session(date=date, slots=slots, shuttles_used=0)
         db.session.add(new_session)
         db.session.commit()
-        
+
         return redirect(url_for('index'))
-    
+
     return render_template('add_session.html')
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)  # Allow access from any IP address
-
+    # Allow access from any IP address
+    app.run(debug=True, host='0.0.0.0', port=5000)
