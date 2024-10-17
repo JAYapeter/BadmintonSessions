@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Upcoming Sessions</title>
+    <title>Badminton Sessions</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
@@ -14,8 +14,8 @@
 
 <body>
     <div class="container mt-5">
-        <a href="{{ url_for('admin_login') }}" class="btn btn-primary">Admin Login</a>
-        <a href="{{ url_for('logout') }}">User Logout</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger mb-4">User Logout</a>
+        <a href="{{ url_for('admin_login') }}" class="btn btn-warning mb-4" style="float: right;">Admin Login</a>
         <h1>Upcoming Badminton Sessions</h1>
         <div class="row">
             {% for session in sessions %}
@@ -44,7 +44,7 @@
                         <!-- View Participants Button with Modal Trigger -->
                         <button type="button" class="btn btn-secondary view-participants-btn"
                             data-session-id="{{ session.id }}" data-toggle="modal"
-                            data-target="#viewParticipantsModal{{ session.id }}">
+                            data-target="#viewParticipantsModal{{ session.id }}" style="float: right;">
                             View Participants
                         </button>
                     </div>
