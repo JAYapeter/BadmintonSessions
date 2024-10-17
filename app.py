@@ -137,12 +137,19 @@ def admin():
         # Add new session logic
         if 'add_session' in request.form:
             date = request.form['date']
+            # Convert the string date from the form to a Python date object
+            date = datetime.strptime(date, '%Y-%m-%d').date()
+
             slots = int(request.form['slots'])
-            new_session = Session(date=date, slots=slots)
-            db.session.add(new_session)
-            db.session.commit()
-            flash('Session added successfully!')
-            return redirect(url_for('admin'))
+            if (slots < 0):
+                flash('Number of Slots must be greater than 0', 'error')
+                return redirect(url_for('admin'))
+            else:
+                new_session = Session(date=date, slots=slots)
+                db.session.add(new_session)
+                db.session.commit()
+                flash('Session added successfully!')
+                return redirect(url_for('admin'))
 
     return render_template('admin.html', current_sessions=current_sessions, past_sessions=past_sessions)
 
@@ -173,7 +180,10 @@ def modify_session(session_id):
         # Get the new slot count from the form
         new_slots = int(request.form['slots'])
         old_slots = session_to_modify.slots
-        session_to_modify.date = request.form['date']
+        date = request.form['date']
+        # Convert the string date from the form to a Python date object
+        date = datetime.strptime(date, '%Y-%m-%d').date()
+        session_to_modify.date = date
         session_to_modify.slots = new_slots
 
         # If slots have increased, move users from waitlist to participants
@@ -353,19 +363,19 @@ def session_participants(session_id):
         return jsonify({'error': 'Session not found'}), 404
 
 
-@app.route('/add_session', methods=['GET', 'POST'])
-def add_session():
-    if request.method == 'POST':
-        date = request.form['date']
-        slots = int(request.form['slots'])
+# @app.route('/add_session', methods=['GET', 'POST'])
+# def add_session():
+#     if request.method == 'POST':
+#         date = request.form['date']
+#         slots = int(request.form['slots'])
 
-        new_session = Session(date=date, slots=slots, shuttles_used=0)
-        db.session.add(new_session)
-        db.session.commit()
+#         new_session = Session(date=date, slots=slots, shuttles_used=0)
+#         db.session.add(new_session)
+#         db.session.commit()
 
-        return redirect(url_for('index'))
+#         return redirect(url_for('index'))
 
-    return render_template('add_session.html')
+#     return render_template('add_session.html')
 
 
 if __name__ == "__main__":

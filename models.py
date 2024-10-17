@@ -1,6 +1,7 @@
 from extensions import db
 from flask_login import UserMixin
 from flask_bcrypt import generate_password_hash, check_password_hash
+from datetime import date
 
 # Define the association table for waitlist
 waitlist = db.Table('waitlist',
