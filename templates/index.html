@@ -33,6 +33,8 @@
                         <button type="button" class="btn btn-primary join-session" data-session-id="{{ session.id }}">
                             {% if current_user in session.users %}
                             Leave
+                            {% elif current_user in session.waitlist %}
+                            Leave Waitlist
                             {% else %}
                             Join
                             {% endif %}
@@ -147,6 +149,8 @@
                         // Toggle button between 'Join' and 'Leave'
                         if (response.joined) {
                             button.text('Leave');
+                        } else if (response.waitlisted) {
+                            button.text('Leave Waitlist')
                         } else {
                             button.text('Join');
                         }

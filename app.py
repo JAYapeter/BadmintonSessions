@@ -311,7 +311,8 @@ def join_session(session_id):
                 'message': 'The session is full. You have been added to the waitlist.',
                 'remaining_slots': session.slots - len(session.users),
                 'waitlist_count': len(session.waitlist),
-                'joined': False
+                'joined': False,
+                'waitlisted': True
             })
         else:
             return jsonify({'error': 'You are already on the waitlist for this session.'}), 400
@@ -337,6 +338,18 @@ def leave_session(session_id):
         return jsonify({
             'success': True,
             'message': 'You have successfully left the session.',
+            'remaining_slots': session.slots - len(session.users),
+            'waitlist_count': len(session.waitlist),
+            'joined': False  # Indicate that the user has left
+        })
+    elif user in session.waitlist:
+        # Remove the user from confirmed participants
+        session.waitlist.remove(user)
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'You have successfully left the waitlist.',
             'remaining_slots': session.slots - len(session.users),
             'waitlist_count': len(session.waitlist),
             'joined': False  # Indicate that the user has left
