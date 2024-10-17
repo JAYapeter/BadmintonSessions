@@ -25,11 +25,8 @@ class User(UserMixin, db.Model):
     # New display_name field
     display_name = db.Column(db.String(50), nullable=False)
 
-    # Relationship with sessions as confirmed participants
     sessions = db.relationship(
         'Session', secondary='poll', back_populates='users')
-
-    # Relationship with sessions as waitlisted participants
     waitlisted_sessions = db.relationship(
         'Session', secondary='waitlist', back_populates='waitlist')
 
@@ -48,16 +45,14 @@ class User(UserMixin, db.Model):
 
 class Session(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.Date, nullable=False)
     slots = db.Column(db.Integer, nullable=False)
-    shuttles_used = db.Column(db.Integer, default=0)
 
-    # Confirmed participants
-    users = db.relationship('User', secondary=poll, back_populates='sessions')
-
-    # Waitlisted participants
+    # Relationship with users
+    users = db.relationship('User', secondary='poll',
+                            back_populates='sessions')
     waitlist = db.relationship(
-        'User', secondary=waitlist, back_populates='waitlisted_sessions')
+        'User', secondary='waitlist', back_populates='waitlisted_sessions')
 
 
 class Fee(db.Model):

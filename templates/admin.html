@@ -188,10 +188,7 @@
                         participantsList.empty();  // Clear current participants
                         response.participants.forEach(function (participant) {
                             participantsList.append(
-                                '<li class="list-group-item" data-user-id="' + participant.id + '">' +
-                                participant.display_name +
-                                ' <button class="btn btn-danger btn-sm float-right remove-participant-btn" data-user-id="' + participant.id + '" data-session-id="' + sessionId + '">Remove</button>' +
-                                '</li>'
+                                '<li class="list-group-item" data-user-id="' + participant.id + '">' + participant.display_name + '</li>'
                             );
                         });
 
@@ -200,38 +197,12 @@
                         waitlistList.empty();  // Clear current waitlist
                         response.waitlist.forEach(function (user) {
                             waitlistList.append(
-                                '<li class="list-group-item" data-user-id="' + user.id + '">' +
-                                user.display_name +
-                                ' <button class="btn btn-danger btn-sm float-right remove-waitlist-btn" data-user-id="' + user.id + '" data-session-id="' + sessionId + '">Remove</button>' +
-                                '</li>'
+                                '<li class="list-group-item" data-user-id="' + user.id + '">' + user.display_name + '</li>'
                             );
                         });
                     },
                     error: function () {
                         alert('Failed to load participants. Please try again.');
-                    }
-                });
-            });
-
-            // Handle removing a participant via AJAX
-            $(document).on('click', '.remove-participant-btn, .remove-waitlist-btn', function () {
-                var sessionId = $(this).data('session-id');
-                var userId = $(this).data('user-id');
-                var isWaitlist = $(this).hasClass('remove-waitlist-btn');  // Check if it's waitlist
-
-                var url = isWaitlist
-                    ? '/admin/session/' + sessionId + '/remove_waitlist/' + userId
-                    : '/admin/session/' + sessionId + '/remove_participant/' + userId;
-
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    success: function (response) {
-                        alert(response.message);
-                        location.reload();  // Reload the page to refresh the lists
-                    },
-                    error: function () {
-                        alert('Failed to remove user.');
                     }
                 });
             });
