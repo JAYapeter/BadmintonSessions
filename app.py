@@ -237,6 +237,49 @@ def admin_session_participants_json(session_id):
     })
 
 
+@app.route('/admin/session/<int:session_id>/remove_participant/<int:user_id>', methods=['POST'])
+def remove_participant(session_id, user_id):
+    session = Session.query.get_or_404(session_id)
+    user = User.query.get_or_404(user_id)
+
+    # if is_session_locked(session):
+    if (session.is_locked):
+        return jsonify({"error": "You can't leave this session after 8 p.m. the day before."}), 403
+
+    # Check if the user is part of the session
+    if user in session.users:
+        # Remove the user from confirmed participants
+        session.users.remove(user)
+
+        # If there is a waitlist, move the first person from waitlist to confirmed
+        if session.waitlist:
+            next_in_line = session.waitlist.pop(0)
+            session.users.append(next_in_line)
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'You have successfully left the session.',
+            'remaining_slots': session.slots - len(session.users),
+            'waitlist_count': len(session.waitlist),
+            'joined': False  # Indicate that the user has left
+        })
+    elif user in session.waitlist:
+        # Remove the user from confirmed participants
+        session.waitlist.remove(user)
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'You have successfully left the waitlist.',
+            'remaining_slots': session.slots - len(session.users),
+            'waitlist_count': len(session.waitlist),
+            'joined': False  # Indicate that the user has left
+        })
+    else:
+        return jsonify({'error': 'You are not part of this session.'}), 400
+
+
 @app.route('/admin/session/<int:session_id>/emails', methods=['GET'])
 @login_required
 def get_session_emails(session_id):
@@ -389,29 +432,6 @@ def session_participants(session_id):
         })
     else:
         return jsonify({'error': 'Session not found'}), 404
-
-
-# def is_session_locked(session):
-
-#     # Lock time is 8 p.m. the day before the session
-#     # Subtract 1 day, add 20 hours to get 8 p.m.
-#     lock_time = session.date - timedelta(days=1, hours=-20)
-#     return datetime.now() >= lock_time
-
-
-# @app.route('/add_session', methods=['GET', 'POST'])
-# def add_session():
-#     if request.method == 'POST':
-#         date = request.form['date']
-#         slots = int(request.form['slots'])
-
-#         new_session = Session(date=date, slots=slots, shuttles_used=0)
-#         db.session.add(new_session)
-#         db.session.commit()
-
-#         return redirect(url_for('index'))
-
-#     return render_template('add_session.html')
 
 
 if __name__ == "__main__":
