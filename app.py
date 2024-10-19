@@ -238,6 +238,17 @@ def admin_session_participants_json(session_id):
     })
 
 
+@app.route('/admin/session/<int:session_id>/emails', methods=['GET'])
+@login_required
+def get_session_emails(session_id):
+    session = Session.query.get_or_404(session_id)
+    # Get emails of confirmed participants
+    # Assuming 'session.users' contains confirmed participants
+    emails = [user.email for user in session.users]
+
+    return jsonify({'emails': ', '.join(emails)})
+
+
 @app.route('/poll', methods=['POST'])
 @login_required
 def poll():
