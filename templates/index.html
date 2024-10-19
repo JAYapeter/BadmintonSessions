@@ -29,7 +29,7 @@
                             {% elif current_user in session.users %}
                             <i class="bi bi-pin-angle-fill" style="float: right; color: blue;"></i>
                             {% elif current_user in session.waitlist %}
-                            <i class="bi bi-hourglass-split" style="float: right; color: darkorange;"></i>  
+                            <i class="bi bi-hourglass-split" style="float: right; color: darkorange;"></i>
                             {% else %}
                             <i class="bi bi-check-square-fill" style="float: right; color: green;"></i>
                             {% endif %}
@@ -182,10 +182,25 @@
                             button.text('Join');
                         }
 
+                        // Update the icon based on the user's status
+                        var icon = button.closest('.card-body').find('i.bi'); // Find the status icon in the card
+                        if (response.joined) {
+                            icon.attr('class', 'bi bi-pin-angle-fill');
+                            icon.css('color', 'blue');
+                        } else if (response.waitlisted) {
+                            icon.attr('class', 'bi bi-hourglass-split');
+                            icon.css('color', 'darkorange');
+                        } else {
+                            icon.attr('class', 'bi bi-check-square-fill');
+                            icon.css('color', 'green');
+                        }
+
                         // Disable the button if the session is locked
                         if (response.is_locked) {
                             button.text('Locked');
                             button.prop('disabled', true);
+                            icon.attr('class', 'bi bi-lock-fill');
+                            icon.css('color', 'red');
                         }
                     },
                     error: function (xhr) {
