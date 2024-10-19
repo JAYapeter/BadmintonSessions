@@ -25,13 +25,13 @@
                     <div class="card-body">
                         <h5 class="card-title">Session on {{ session.date }}
                             {% if session.is_locked %}
-                            <i class="bi bi-lock-fill" style="float: right; color: red;"></i>
+                            <i class="bi bi-lock-fill" style="float: right; color: #dc3545;"></i>
                             {% elif current_user in session.users %}
-                            <i class="bi bi-pin-angle-fill" style="float: right; color: blue;"></i>
+                            <i class="bi bi-pin-angle-fill" style="float: right; color: #0d6efd;"></i>
                             {% elif current_user in session.waitlist %}
-                            <i class="bi bi-hourglass-split" style="float: right; color: darkorange;"></i>
+                            <i class="bi bi-hourglass-split" style="float: right; color: #ffc107;"></i>
                             {% else %}
-                            <i class="bi bi-check-square-fill" style="float: right; color: green;"></i>
+                            <i class="bi bi-check-square-fill" style="float: right; color: #198754;"></i>
                             {% endif %}
                         </h5>
                         <p class="card-text">Total Slots: {{ session.slots }}</p>
@@ -203,13 +203,13 @@
                         var icon = button.closest('.card-body').find('i.bi'); // Find the status icon in the card
                         if (response.joined) {
                             icon.attr('class', 'bi bi-pin-angle-fill');
-                            icon.css('color', 'blue');
+                            icon.css('color', '#0d6efd');
                         } else if (response.waitlisted) {
                             icon.attr('class', 'bi bi-hourglass-split');
-                            icon.css('color', 'darkorange');
+                            icon.css('color', '#ffc107');
                         } else {
                             icon.attr('class', 'bi bi-check-square-fill');
-                            icon.css('color', 'green');
+                            icon.css('color', '#198754');
                         }
 
                         // Disable the button if the session is locked
@@ -217,7 +217,7 @@
                             button.text('Locked');
                             button.prop('disabled', true);
                             icon.attr('class', 'bi bi-lock-fill');
-                            icon.css('color', 'red');
+                            icon.css('color', '#dc3545');
                         }
                     },
                     error: function (xhr) {
