@@ -30,6 +30,8 @@ class User(UserMixin, db.Model):
         'Session', secondary='poll', back_populates='users')
     waitlisted_sessions = db.relationship(
         'Session', secondary='waitlist', back_populates='waitlist')
+    
+    is_admin = db.Column(db.Boolean, default=False)
 
     # Set password (used during registration)
     def set_password(self, password):

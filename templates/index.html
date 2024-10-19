@@ -16,7 +16,9 @@
 <body>
     <div class="container mt-5">
         <a href="{{ url_for('logout') }}" class="btn btn-danger mb-4">User Logout</a>
-        <a href="{{ url_for('admin_login') }}" class="btn btn-warning mb-4" style="float: right;">Admin Login</a>
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('admin') }}" class="btn btn-warning mb-4" style="float: right;">Admin Login</a>
+        {% endif %}
         <h1>Upcoming Badminton Sessions</h1>
         <div class="row">
             {% for session in sessions %}

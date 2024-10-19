@@ -27,3 +27,4 @@ dist/
 build/
 
 .DS_Store
+grant_admin.py

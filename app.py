@@ -119,9 +119,11 @@ def admin_logout():
 
 
 @app.route('/admin', methods=['GET', 'POST'])
+@login_required
 def admin():
-    if not session.get('admin'):
-        return redirect(url_for('admin_login'))
+    if not current_user.is_admin:
+        # Redirect non-admin users to the main page
+        return redirect(url_for('index'))
 
     # Get the current date
     current_date = datetime.now().date()
