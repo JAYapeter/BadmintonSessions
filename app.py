@@ -4,10 +4,9 @@ from config import Config
 from extensions import db  # Import db from extensions
 from flask_migrate import Migrate
 from sqlalchemy import asc
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
-from models import Session
 
 
 app = Flask(__name__)
@@ -333,6 +332,11 @@ def join_session(session_id):
 @login_required
 def leave_session(session_id):
     session = Session.query.get_or_404(session_id)
+
+    # if is_session_locked(session):
+    if (session.is_locked):
+        return jsonify({"error": "You can't leave this session after 8 p.m. the day before."}), 403
+
     user = current_user
 
     # Check if the user is part of the session
@@ -385,6 +389,14 @@ def session_participants(session_id):
         })
     else:
         return jsonify({'error': 'Session not found'}), 404
+
+
+# def is_session_locked(session):
+
+#     # Lock time is 8 p.m. the day before the session
+#     # Subtract 1 day, add 20 hours to get 8 p.m.
+#     lock_time = session.date - timedelta(days=1, hours=-20)
+#     return datetime.now() >= lock_time
 
 
 # @app.route('/add_session', methods=['GET', 'POST'])

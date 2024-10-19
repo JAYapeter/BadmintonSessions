@@ -1,7 +1,7 @@
 from extensions import db
 from flask_login import UserMixin
 from flask_bcrypt import generate_password_hash, check_password_hash
-from datetime import date
+from datetime import datetime, timedelta
 
 # Define the association table for waitlist
 waitlist = db.Table('waitlist',
@@ -54,6 +54,15 @@ class Session(db.Model):
                             back_populates='sessions')
     waitlist = db.relationship(
         'User', secondary='waitlist', back_populates='waitlisted_sessions')
+
+    @property
+    def is_locked(self):
+        lock_time = datetime.combine(
+            # datetime for 8pm night before session
+            self.date - timedelta(days=1), datetime.min.time()) + timedelta(hours=20)
+            # date for testing
+            # self.date - timedelta(days=1), datetime.min.time()) + timedelta(hours=15) + timedelta(minutes=36)
+        return datetime.now() >= lock_time
 
 
 class Fee(db.Model):
