@@ -29,11 +29,11 @@
                             {% if session.is_locked %}
                             <i class="bi bi-lock-fill" style="float: right; color: #dc3545;"></i>
                             {% elif current_user in session.users %}
-                            <i class="bi bi-pin-angle-fill" style="float: right; color: #0d6efd;"></i>
+                            <i class="bi bi-check-square-fill" style="float: right; color: #198754;"></i>
                             {% elif current_user in session.waitlist %}
                             <i class="bi bi-hourglass-split" style="float: right; color: #ffc107;"></i>
                             {% else %}
-                            <i class="bi bi-check-square-fill" style="float: right; color: #198754;"></i>
+                            <i class="bi bi-plus-circle-fill" style="float: right; color: #0d6efd;"></i>
                             {% endif %}
                         </h5>
                         <p class="card-text">Total Slots: {{ session.slots }}</p>
@@ -43,14 +43,15 @@
                             }}</p>
 
                         <!-- Join Button -->
-                        <button type="button" class="btn btn-primary join-session" data-session-id="{{ session.id }}" {%
-                            if session.is_locked%}{%if current_user in session.users or current_user in
-                            session.waitlist%}disabled{% endif %}{% endif %}>
+                        <button type="button" class="btn btn-primary join-session" data-session-id="{{ session.id }}" 
+                            {% if session.is_locked %}
+                                {% if current_user in session.users or current_user in session.waitlist %} disabled {% endif %}
+                            {% endif %}>
                             {% if current_user in session.users %}
                             {% if session.is_locked %}
                             Locked
                             {% else %}
-                            Leave
+                            Leave Session
                             {% endif %}
                             {% elif current_user in session.waitlist %}
                             {% if session.is_locked %}
@@ -59,7 +60,11 @@
                             Leave Waitlist
                             {% endif %}
                             {% else %}
-                            Join
+                            {% if session.slots - session.users|length < 1 %}
+                            Join Waitlist
+                            {% else %}
+                            Join Session
+                            {% endif %}
                             {% endif %}
                         </button>
 
@@ -144,7 +149,7 @@
             var sessionToLeave = null; // Track the session that the user wants to leave
             $('.join-session').on('click', function (e) {
                 var action = $(this).text().trim().toLowerCase();
-                if (action === 'leave' || action === 'leave waitlist') {
+                if (action === 'leave session' || action === 'leave waitlist') {
                     sessionToLeave = $(this).data('session-id');
                     $('#leaveConfirmationModal').modal('show');
                 } else {
@@ -163,7 +168,7 @@
                 var sessionId = button.data('session-id');
                 var action = button.text().trim().toLowerCase(); // either 'join' or 'leave'
 
-                var url = (action === 'join') ? '/join_session/' + sessionId : '/leave_session/' + sessionId;
+                var url = (action === 'join session' || action === 'join waitlist') ? '/join_session/' + sessionId : '/leave_session/' + sessionId;
 
                 if (button.text().trim() === 'Locked') {
                     alert('You cannot leave this session after 8 p.m. the night before.');
@@ -194,24 +199,26 @@
 
                         // Toggle button between 'Join' and 'Leave'
                         if (response.joined) {
-                            button.text('Leave');
+                            button.text('Leave Session');
                         } else if (response.waitlisted) {
-                            button.text('Leave Waitlist')
+                            button.text('Leave Waitlist');
+                        } else if (response.remaining_slots < 1){
+                            button.text('Join Waitlist');
                         } else {
-                            button.text('Join');
+                            button.text('Join Session');
                         }
 
                         // Update the icon based on the user's status
                         var icon = button.closest('.card-body').find('i.bi'); // Find the status icon in the card
                         if (response.joined) {
-                            icon.attr('class', 'bi bi-pin-angle-fill');
-                            icon.css('color', '#0d6efd');
+                            icon.attr('class', 'bi bi-check-square-fill');
+                            icon.css('color', '#198754');
                         } else if (response.waitlisted) {
                             icon.attr('class', 'bi bi-hourglass-split');
                             icon.css('color', '#ffc107');
                         } else {
-                            icon.attr('class', 'bi bi-check-square-fill');
-                            icon.css('color', '#198754');
+                            icon.attr('class', 'bi bi-plus-circle-fill');
+                            icon.css('color', '#0d6efd');
                         }
 
                         // Disable the button if the session is locked
